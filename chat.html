@@ -1,0 +1,109 @@
+<html>
+<head>
+  <title>Socket.IO chat</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font: 13px Helvetica, Arial; }
+    form{ background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
+    input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
+    button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
+    #messages { list-style-type: none; margin: 0; padding: 0; }
+    #messages li { padding: 5px 10px; }
+    #messages li:nth-child(odd) { background: #eee; }
+    .chat-form-area {display: none;}
+    .username {font-weight: bold;}
+    .notice {font-weight: bold;color: green;}
+  </style>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+  <script>
+
+    var socket = io();
+
+    $( document ).ready(function() {
+
+      $('form').submit(function(){
+        send_message();
+        return false;
+      });
+
+      $('body').bind("keypress", function(e) {
+        if (e.keyCode == 13) {      
+          e.preventDefault();
+          return false;
+        }
+      });
+
+      $("#m").keydown(function (e) {
+        if (e.keyCode == 13) {
+          send_message();
+        }
+      });
+
+      $("#username").keydown(function (e) {
+        if (e.keyCode == 13) {
+          login();
+        }
+      });
+
+      $('#username').focus();
+
+    });
+
+    socket.on('send message client', function(data){
+      var username = data.username;
+      var message = data.message;
+      var html = "<span class='username'>" + username + "</span>" + ' : ' + message;
+      $('#messages').append($('<li>').html(html));
+    });
+
+    socket.on('client login success', function(data){
+      $('#messages').html();
+      var html = "<span class='notice'>Welcome back " + data.username + "</span>";
+      $('#messages').append($('<li>').html(html));
+
+      $('.username-form').hide();
+      $('.chat-form-area').show();
+      $('#m').val('');
+      $('#m').get(0).focus();
+    });
+
+    socket.on('client notice', function(msg){
+      var html = "<span class='notice'>" + msg + "</span>";
+      $('#messages').append($('<li>').html(html));
+    });
+
+    function send_message(){
+      var message = $('#m').val();
+      var username = $('#username').val();
+      socket.emit('send message server', {
+        "username": username,
+        "message": message
+      });
+      $('#m').val('');
+    };
+
+    function login(){
+      var username = $('#username').val();
+      if(username == ''){
+        return false;
+      }
+      socket.emit("client login", {"username": username});
+    };
+
+  </script>
+</head>
+<body>
+  <form class="username-form" action="">
+    <input type="text" id="username" />
+    <button type="button" onclick="login()">Join</button>
+  </form>
+  <div class="chat-form-area">
+    <ul id="messages"></ul>
+    <form action="" id="chat-form">
+      <input id="m" autocomplete="off" />
+      <button type="button" onclick="send_message()">Send</button>
+    </form>
+  </div>
+</body>
+</html>
